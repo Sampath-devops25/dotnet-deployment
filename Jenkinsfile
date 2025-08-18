@@ -1,36 +1,72 @@
-pipeline {
+﻿pipeline {
     agent any
+
     environment {
-        IMAGE = "yourdockerhub/sampleapp:${BUILD_NUMBER}"
+        DOCKER_IMAGE = 'your-dockerhub-username/aspireapp1'
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
+        DEPLOY_DIR = 'k8s/overlays/dev' // Path to your kustomization.yaml
+        GIT_CREDENTIALS_ID = 'git-credentials-id' // Replace with your Jenkins Git creds
     }
+
     stages {
-        stage('Build') {
+
+        stage('Checkout') {
             steps {
-                sh 'dotnet build src/SampleApp.csproj'
+                git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${env.GIT_CREDENTIALS_ID}"
             }
         }
+
+        stage('Restore & Build') {
+            steps {
+                sh 'dotnet restore AspireApp1.sln'
+                sh 'dotnet build AspireApp1.sln --no-restore'
+            }
+        }
+
         stage('Test') {
             steps {
-                sh 'dotnet test src/SampleApp.csproj'
+                // If you have tests
+                // sh 'dotnet test AspireApp1.Tests/AspireApp1.Tests.csproj'
+                echo 'Skipping tests (none defined).'
             }
         }
-        stage('Dockerize') {
+
+        stage('Publish & Dockerize') {
             steps {
-                sh 'docker build -t $IMAGE .'
-                sh 'docker push $IMAGE'
+                sh 'dotnet publish AspireApp1.WebAPI/AspireApp1.WebAPI.csproj -c Release -o ./publish'
+                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
+                sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
             }
         }
-        stage('GitOps Update') {
+
+        stage('Update GitOps Deployment') {
             steps {
-                sh '''
-                    git clone https://github.com/yourorg/sampleapp-deploy.git
-                    cd sampleapp-deploy/k8s/overlays/dev
-                    sed -i "s|newTag: .*|newTag: ${BUILD_NUMBER}|g" kustomization.yaml
-                    git commit -am "Update image to $BUILD_NUMBER"
-                    git push
-                '''
+                script {
+                    // Clone the deployment repo if it's separate
+                    dir('deployment-repo') {
+                        git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${env.GIT_CREDENTIALS_ID}"
+
+                        // Update kustomization.yaml image tag
+                        sh """
+                        cd ${DEPLOY_DIR}
+                        sed -i 's|newTag:.*|newTag: ${DOCKER_TAG}|' kustomization.yaml
+                        git config user.name "jenkins"
+                        git config user.email "jenkins@ci"
+                        git commit -am "CI: Update image tag to ${DOCKER_TAG}"
+                        git push
+                        """
+                    }
+                }
             }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Build and deploy completed successfully!'
+        }
+        failure {
+            echo '❌ Build or deploy failed.'
         }
     }
 }
-
