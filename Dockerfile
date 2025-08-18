@@ -1,13 +1,12 @@
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ./src .
-RUN dotnet publish -c Release -o /app/publish
+COPY . .
+RUN dotnet publish AspireApp1.WebAPI/AspireApp1.WebAPI.csproj -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "'AspireApp1.dll"]
-
+ENTRYPOINT ["dotnet", "AspireApp1.WebAPI.dll"]
