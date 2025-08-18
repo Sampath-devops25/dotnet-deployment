@@ -5,7 +5,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-org/AspireApp1.git
+    repoURL: https://github.com/Sampath-devops25/dotnet-deployment.git
     targetRevision: main
     path: k8s
   destination:
