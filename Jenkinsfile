@@ -2,9 +2,9 @@
     agent any
 
     environment {
-        DOCKER_IMAGE = 'your-dockerhub-username/aspireapp1'
-        DOCKER_TAG = "${env.BUILD_NUMBER}"
-        DEPLOY_DIR = 'k8s/overlays/dev' // Path to your kustomization.yaml
+        // DOCKER_IMAGE = 'your-dockerhub-username/aspireapp1'
+        // DOCKER_TAG = "${env.BUILD_NUMBER}"
+        // DEPLOY_DIR = 'k8s/overlays/dev' // Path to your kustomization.yaml
         GIT_CREDENTIALS_ID = 'git-credentials-id' // Replace with your Jenkins Git creds
     }
 
