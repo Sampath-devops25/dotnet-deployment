@@ -1,18 +1,21 @@
-# Base image for runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-WORKDIR /app
-EXPOSE 80
-EXPOSE 443
-
-# Build image
+# Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy everything to the container
+# Copy everything into the container
 COPY . .
 
-# Restore dependencies – good for caching
-RUN dotnet restore AspireApp1.Web/AspireApp1.Web.csproj
+# Restore dependencies
+RUN dotnet restore "AspireApp1/AspireApp1.Web/AspireApp1.Web.csproj"
 
-# Publish the application
-RUN dotnet publish AspireApp1.W
+# Publish the app
+RUN dotnet publish "AspireApp1/AspireApp1.Web/AspireApp1.Web.csproj" -c Release -o /app/publish
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+EXPOSE 80
+ENTRYPOINT ["dotnet", "AspireApp1.Web.dll"]
