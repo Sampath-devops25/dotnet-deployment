@@ -31,7 +31,7 @@
             }
         }
 
-        stage('Publish & Dockerize') {
+    /*    stage('Publish & Dockerize') {
             steps {
                 sh 'dotnet publish AspireApp1.WebAPI/AspireApp1.WebAPI.csproj -c Release -o ./publish'
                 sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
@@ -58,7 +58,7 @@
                     }
                 }
             }
-        }
+        } */
     }
 
     post {

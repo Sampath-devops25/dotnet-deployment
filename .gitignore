@@ -6,4 +6,4 @@ obj/
 *.user
 *.suo
 *.vsidx
-
+*.dockerignore
