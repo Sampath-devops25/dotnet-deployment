@@ -13,7 +13,7 @@
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${GIT_CREDENTIALS_ID}"
+              git branch: 'main', credentialsId: 'ecr:ap-southeast-1:aws-creds', url: 'https://github.com/Sampath-devops25/dotnet-deployment.git'
             }
         }
 
