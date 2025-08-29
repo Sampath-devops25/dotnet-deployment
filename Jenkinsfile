@@ -2,71 +2,78 @@
     agent any
 
     environment {
-        // DOCKER_IMAGE = 'your-dockerhub-username/aspireapp1'
-        // DOCKER_TAG = "${env.BUILD_NUMBER}"
-        // DEPLOY_DIR = 'k8s/overlays/dev' // Path to your kustomization.yaml
-        GIT_CREDENTIALS_ID = 'git-credentials-id' // Replace with your Jenkins Git creds
+        AWS_REGION = 'ap-south-1'
+        ECR_REGISTRY = '809808680744.dkr.ecr.ap-south-1.amazonaws.com'
+        ECR_REPOSITORY = 'dotnet-deployment/dotnet-deployment'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        GIT_CREDENTIALS_ID = 'git-credits'  // Your Git credentials ID in Jenkins
+        AWS_CREDENTIALS_ID = 'aws-creds'    // Your AWS credentials ID in Jenkins
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${env.GIT_CREDENTIALS_ID}"
+                git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${GIT_CREDENTIALS_ID}"
             }
         }
 
-        stage('Restore & Build') {
-            steps {
-                sh 'dotnet restore AspireApp1.sln'
-                sh 'dotnet build AspireApp1.sln --no-restore'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                // If you have tests
-                // sh 'dotnet test AspireApp1.Tests/AspireApp1.Tests.csproj'
-                echo 'Skipping tests (none defined).'
-            }
-        }
-
-    /*    stage('Publish & Dockerize') {
-            steps {
-                sh 'dotnet publish AspireApp1.WebAPI/AspireApp1.WebAPI.csproj -c Release -o ./publish'
-                sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
-                sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
-            }
-        }
-
-        stage('Update GitOps Deployment') {
+        stage('Build Docker Image') {
             steps {
                 script {
-                    // Clone the deployment repo if it's separate
-                    dir('deployment-repo') {
-                        git url: 'https://github.com/Sampath-devops25/dotnet-deployment.git', credentialsId: "${env.GIT_CREDENTIALS_ID}"
-
-                        // Update kustomization.yaml image tag
-                        sh """
-                        cd ${DEPLOY_DIR}
-                        sed -i 's|newTag:.*|newTag: ${DOCKER_TAG}|' kustomization.yaml
-                        git config user.name "jenkins"
-                        git config user.email "jenkins@ci"
-                        git commit -am "CI: Update image tag to ${DOCKER_TAG}"
-                        git push
-                        """
-                    }
+                    dockerImage = docker.build("${ECR_REPOSITORY}:${IMAGE_TAG}")
                 }
             }
-        } */
+        }
+
+        stage('Login to ECR') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: "${AWS_CREDENTIALS_ID}"
+                ]]) {
+                    sh """
+                        aws --version
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                    """
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker tag ${ECR_REPOSITORY}:${IMAGE_TAG} ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                        docker push ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Update Kubernetes Deployment Manifest') {
+            steps {
+                script {
+                    // Assumes your k8s deployment yaml is at K8s/base/deployment.yaml
+                    sh """
+                        sed -i 's|image:.*|image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}|g' K8s/base/deployment.yaml
+
+                        git config user.email "jenkins@ci"
+                        git config user.name "jenkins"
+                        git add K8s/base/deployment.yaml
+                        git commit -m "ci: update image tag to ${IMAGE_TAG}"
+                        git push origin main
+                    """
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo '✅ Build and deploy completed successfully!'
+            echo "✅ Build and deployment manifest update succeeded."
         }
         failure {
-            echo '❌ Build or deploy failed.'
+            echo "❌ Build or deployment manifest update failed."
         }
     }
 }

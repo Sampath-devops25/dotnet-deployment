@@ -1,0 +1,29 @@
+name: .NET Aspire CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install Aspire workload
+      run: dotnet workload install aspire
+
+    - name: Restore dependencies
+      run: dotnet restore AspireApp1/AspireApp1.AppHost/AspireApp1.AppHost.csproj
+
+    - name: Build project
+      run: dotnet build AspireApp1/AspireApp1.AppHost/
