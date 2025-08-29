@@ -12,7 +12,7 @@ WORKDIR /src
 COPY . .
 
 # Restore dependencies – good for caching
-RUN dotnet restore AspireApp1.WebAPI/AspireApp1.WebAPI.csproj
+RUN dotnet restore AspireApp1.Web/AspireApp1.Web.csproj
 
 # Publish the application
 RUN dotnet publish AspireApp1.W
