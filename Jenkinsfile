@@ -13,10 +13,11 @@
     stages {
         stage('Checkout') {
             steps {
-              git branch: 'main', credentialsId: 'ecr:ap-southeast-1:aws-creds', url: 'https://github.com/Sampath-devops25/dotnet-deployment.git'
+                git branch: 'main',
+                    credentialsId: "${GIT_CREDENTIALS_ID}",
+                    url: 'https://github.com/Sampath-devops25/dotnet-deployment.git'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
